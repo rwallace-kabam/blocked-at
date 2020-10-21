@@ -16,6 +16,18 @@ function cleanStack (stack) {
   return frames.slice(i + 1, stack.length - 1)
 }
 
+function isEmpty (obj) {
+  if(!obj){
+    return true;
+  }
+
+  for(var k in obj){
+    return false;
+  }
+
+  return true;
+}
+
 module.exports = (callback, options) => {
   let continuityId
   options = options || {}
@@ -31,9 +43,24 @@ module.exports = (callback, options) => {
     Error.captureStackTrace(e)
     debugLog('init', asyncId)
     const cached = { asyncId, type, stack: e.stack }
-    if (options.resourcesCap > resourcesCount) {
+    const cacheResource = () => {
       cached.resource = resource
-      resourcesCount += 1
+      resourceCount++
+    };
+
+    if (options.resourcesCap > resourcesCount && !isEmpty(resource)) {
+      if(!options.resourceWhitelist && !options.resourceBlacklist){
+        cacheResource()
+      }
+      else if(options.resourceWhiteList && type in options.resourceWhitelist){
+        cacheResource()
+      }
+      else if(options.resourceBlacklist && !(type in options.resourceBlacklist)){
+        cacheResource()
+      }
+      else{
+        debugLog('resource filtered and not cached', type)
+      }
     }
     cache.set(asyncId, cached)
   }
